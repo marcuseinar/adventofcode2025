@@ -1,0 +1,2 @@
+# Advent of Code 2025 - Python Requirements
+# Add any additional dependencies here as needed
