@@ -14,7 +14,7 @@ Usage:
 
 import argparse
 import sys
-import subprocess
+import importlib
 from datetime import datetime
 from pathlib import Path
 
@@ -41,40 +41,70 @@ def get_current_day() -> int:
     return day
 
 
-def run_solution(day: int, part: int) -> int:
+def run_solution(day: int, part: int = None) -> int:
     """
-    Run a specific day and part solution.
+    Run a specific day and optionally a specific part.
     
     Args:
         day: The day number (1-25)
-        part: The part number (1 or 2)
+        part: The part number (1 or 2), or None for both parts
     
     Returns:
-        Exit code from the solution script
+        Exit code (0 for success, 1 for not implemented/error)
     """
     day_padded = f"{day:02d}"
-    solution_dir = Path(__file__).parent / f"day{day_padded}"
-    solution_file = solution_dir / f"part{part}.py"
+    day_module = f"day{day_padded}"
     
+    # Check if solution file exists
+    solution_file = Path(__file__).parent / day_module / "solution.py"
     if not solution_file.exists():
         print(f"Error: Solution file not found: {solution_file}")
         return 1
     
-    print(f"\n{'=' * 60}")
-    print(f"Running Day {day} Part {part}")
-    print(f"{'=' * 60}")
-    
-    try:
-        result = subprocess.run(
-            [sys.executable, str(solution_file)],
-            cwd=solution_dir,
-            capture_output=False,
-            text=True
-        )
-        return result.returncode
-    except Exception as e:
-        print(f"Error running solution: {e}")
+    # Read input file
+    input_file = Path(__file__).parent / day_module / "input" / "input.txt"
+    if not input_file.exists():
+        print(f"Error: Input file not found: {input_file}")
         return 1
+    
+    with open(input_file) as f:
+        input_text = f.read()
+    
+    # Import the solution module dynamically
+    try:
+        module = importlib.import_module(day_module + ".solution")
+    except Exception as e:
+        print(f"Error importing solution module: {e}")
+        return 1
+    
+    # Determine which parts to run
+    parts_to_run = [part] if part else [1, 2]
+    
+    exit_code = 0
+    for part_num in parts_to_run:
+        print(f"\n{'=' * 60}")
+        print(f"Running Day {day} Part {part_num}")
+        print(f"{'=' * 60}")
+        
+        try:
+            # Get the part function
+            part_func = getattr(module, f"part{part_num}")
+            
+            # Run the solution
+            result = part_func(input_text)
+            print(f"Day {day} Part {part_num} Solution: {result}")
+            
+        except NotImplementedError as e:
+            print(f"Day {day} Part {part_num}: {e}")
+            exit_code = 1
+        except AttributeError:
+            print(f"Error: part{part_num} function not found in {day_module}.solution")
+            exit_code = 1
+        except Exception as e:
+            print(f"Error running solution: {e}")
+            exit_code = 1
+    
+    return exit_code
 
 
 def main():
@@ -117,9 +147,6 @@ def main():
     else:
         days_to_run = [get_current_day()]
     
-    # Determine which parts to run
-    parts_to_run = [args.part] if args.part else [1, 2]
-    
     # Print summary
     print("\nAdvent of Code 2025 - Solution Runner")
     print("=" * 60)
@@ -137,9 +164,8 @@ def main():
     # Run solutions
     exit_codes = []
     for day in days_to_run:
-        for part in parts_to_run:
-            exit_code = run_solution(day, part)
-            exit_codes.append(exit_code)
+        exit_code = run_solution(day, args.part)
+        exit_codes.append(exit_code)
     
     # Summary
     print(f"\n{'=' * 60}")
@@ -148,18 +174,14 @@ def main():
     
     total = len(exit_codes)
     successful = sum(1 for code in exit_codes if code == 0)
-    not_implemented = sum(1 for code in exit_codes if code == 1)
+    not_implemented = total - successful
     
-    print(f"Total solutions run: {total}")
+    print(f"Total days run: {total}")
     print(f"Successful: {successful}")
     print(f"Not implemented: {not_implemented}")
-    print(f"Errors: {total - successful - not_implemented}")
     
-    # Return 0 if all solutions either succeeded or are not implemented
-    # Return 1 if there were actual errors
-    if total - successful - not_implemented > 0:
-        return 1
-    return 0
+    # Return 0 if all succeeded, 1 otherwise
+    return 0 if successful == total else 1
 
 
 if __name__ == "__main__":
