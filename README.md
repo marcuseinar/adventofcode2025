@@ -85,6 +85,12 @@ python solution.py 2  # Run only part 2
 ```python
 """Advent of Code 2025 - Day 1"""
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path to import utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from utils.helpers import timing
 
 
@@ -128,9 +134,6 @@ def part2(input_text: str) -> int:
 
 def main():
     """Main entry point for running this day's solutions."""
-    import sys
-    from pathlib import Path
-    
     # Read input file
     day_dir = Path(__file__).parent
     input_file = day_dir / "input" / "input.txt"
