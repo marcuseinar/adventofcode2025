@@ -19,6 +19,11 @@ def safe_wheel(current_position: int, steps: int, direction: str, wheel_size: in
         8
         >>> safe_wheel(3, 5, 'counter_clockwise', 10)
         8
+        
+    Note:
+        Both examples return 8 because of modular arithmetic:
+        - Clockwise: (3 + 5) % 10 = 8
+        - Counter-clockwise: (3 - 5) % 10 = -2 % 10 = 8
     """
     if direction == 'clockwise':
         new_position = (current_position + steps) % wheel_size
